@@ -1,16 +1,16 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "#D#",
+    "ERE",
     "GVG",
-    "iNi"
+    "OOO"
   ],
   "key": {
-    "#": {
-      "item": "minecraft:stone"
+    "E": {
+      "item": "minecraft:ender_eye"
     },
-    "D": {
-      "item": "minecraft:dragon_head"
+    "R": {
+      "item": "minecraft:recovery_compass"
     },
     "G": {
       "item": "minecraft:gold_block"
@@ -18,11 +18,8 @@
     "V": {
       "item": "online_detector:online_detector"
     },
-    "i": {
-      "item": "minecraft:iron_ingot"
-    },
-    "N": {
-      "item": "minecraft:nether_star"
+    "O": {
+      "item": "minecraft:obsidian"
     }
   },
   "result": {
