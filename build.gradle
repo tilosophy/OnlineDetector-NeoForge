@@ -1,93 +1,42 @@
 plugins {
-    id 'eclipse'
-    id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '5.+'
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.146'
 }
-
-version = '1.20-6.0.0'
-group = 'com.andrews.online_detector'
-archivesBaseName = 'online_detector'
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-minecraft {
-    mappings channel: 'official', version: '1.20'
-
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
+version = mod_version
+group = 'andrews.online_detector'
+base { archivesName = 'online_detector' }
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+neoForge {
+    version = neo_version
     runs {
-        client {
-            workingDirectory project.file('run')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                online_detector {
-                    source sourceSets.main
-                }
-            }
-        }
-
+        client { client() }
         server {
-            workingDirectory project.file('run')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                online_detector {
-                    source sourceSets.main
-                }
-            }
+            server()
+            programArgument '--nogui'
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'online_detector'
         }
     }
-}
-
-// sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-repositories {
-    
-}
-
-dependencies {
-
-    minecraft 'net.minecraftforge:forge:1.20-46.0.1'
-	
-}
-
-// Example for how to get properties into the manifest for reading at runtime.
-jar {
-    manifest {
-        attributes([
-                "Specification-Title"     : "online_detector",
-                "Specification-Vendor"    : "andrew0030",
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : "andrew0030",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
+    mods {
+        online_detector { sourceSet(sourceSets.main) }
     }
 }
-
-jar.finalizedBy('reobfJar')
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
-        }
-    }
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var properties = [mod_version: mod_version, neo_version: neo_version]
+    inputs.properties properties
+    expand properties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
 }
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.named('jar', Jar) {
+    exclude 'andrews/online_detector/gametest/**', 'data/online_detector/structure/empty.nbt'
+    from('LICENSE.txt', 'COPYING', 'NOTICE.md') { into 'META-INF' }
 }
