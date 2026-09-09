@@ -38,5 +38,5 @@ neoForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 tasks.named('jar', Jar) {
     exclude 'andrews/online_detector/gametest/**', 'data/online_detector/structure/empty.nbt'
-    from('LICENSE.txt', 'COPYING', 'NOTICE.md') { into 'META-INF' }
+    from(files('LICENSE.txt', 'COPYING', 'NOTICE.md')) { into 'META-INF' }
 }
