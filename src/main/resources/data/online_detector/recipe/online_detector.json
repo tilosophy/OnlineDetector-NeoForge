@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CEC",
+    "SOS",
+    "RTR"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:cobblestone"
+    },
+    "E": {
+      "item": "minecraft:ender_eye"
+    },
+    "S": {
+      "item": "minecraft:stone"
+    },
+    "O": {
+      "item": "minecraft:observer"
+    },
+    "R": {
+      "item": "minecraft:repeater"
+    },
+    "T": {
+      "item": "minecraft:comparator"
+    }
+  },
+  "result": {
+    "id": "online_detector:online_detector",
+    "count": 1
+  }
+}

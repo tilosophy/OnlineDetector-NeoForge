@@ -38,6 +38,22 @@ import java.util.function.ToIntFunction;
 
 public class OnlineDetectorBlock extends BaseEntityBlock
 {
+    public static final com.mojang.serialization.MapCodec<OnlineDetectorBlock> CODEC = simpleCodec(OnlineDetectorBlock::new);
+    @Override protected com.mojang.serialization.MapCodec<? extends OnlineDetectorBlock> codec() { return CODEC; }
+
+    // Advertise weak redstone output, including connections to redstone dust.
+    @Override public boolean isSignalSource(BlockState state) { return true; }
+
+    @Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state,
+            Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (player.isShiftKeyDown()) {
+            useWithoutItem(state, level, pos, player, hit);
+            return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
 	public static final DirectionProperty HORIZONTAL_FACING = BlockStateProperties.HORIZONTAL_FACING;
 	public static final BooleanProperty IS_ACTIVE = BooleanProperty.create("is_active");
 	public static final BooleanProperty IS_INVERTED = BooleanProperty.create("is_inverted");
@@ -46,16 +62,16 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 	protected static final VoxelShape AABB = Shapes.or(BOTTOM_PART, TOP_PART);
 	private static final float PIXEL_SIZE = 0.0625F;
 	
-	public OnlineDetectorBlock()
+	public OnlineDetectorBlock(Properties properties)
 	{
-		super(getProperties());
+		super(properties);
 		this.registerDefaultState(this.stateDefinition.any().setValue(HORIZONTAL_FACING, Direction.NORTH).setValue(IS_ACTIVE, false).setValue(IS_INVERTED, false));
 	}
 	
 	/**
 	 * @return - The properties for this Block
 	 */
-	private static Properties getProperties()
+	public static Properties createProperties()
 	{
 		Properties properties = Block.Properties.of();
 		properties.mapColor(MapColor.STONE);
@@ -99,11 +115,12 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 	}
 
 	@Override
-	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit)
+	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit)
 	{
 		if(player.isShiftKeyDown())
 		{
-			level.setBlockAndUpdate(pos, state.setValue(OnlineDetectorBlock.IS_INVERTED, !state.getValue(OnlineDetectorBlock.IS_INVERTED)));
+			if (!level.isClientSide && level.mayInteract(player, pos) && player.getAbilities().mayBuild)
+                level.setBlockAndUpdate(pos, state.cycle(IS_INVERTED));
 			return InteractionResult.SUCCESS;
 		}
 		return InteractionResult.PASS;
@@ -118,9 +135,7 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 
 			if(blockEntity instanceof OnlineDetectorBlockEntity onlineDetectorBlockEntity)
 			{
-				onlineDetectorBlockEntity.setOwnerUUID(player.getUUID());
-				onlineDetectorBlockEntity.setOwnerName(player.getName().getString());
-				onlineDetectorBlockEntity.setOwnerHead(new ItemStack(Items.AIR));
+				onlineDetectorBlockEntity.setOwner(player.getUUID(), player.getGameProfile().getName());
 			}
 		}
 	}
@@ -135,7 +150,7 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 	@Override
 	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType)
 	{
-		return (level1, pos, state1, blockEntity) -> OnlineDetectorBlockEntity.tick(level1, pos, state1, (OnlineDetectorBlockEntity) blockEntity);
+		return level.isClientSide ? null : createTickerHelper(blockEntityType, andrews.online_detector.registry.ODBlockEntities.ONLINE_DETECTOR.get(), OnlineDetectorBlockEntity::tick);
 	}
 
 	@Override
@@ -161,7 +176,7 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 	{
 		if((state.getValue(IS_ACTIVE) && !state.getValue(IS_INVERTED)) || (!state.getValue(IS_ACTIVE) && state.getValue(IS_INVERTED)))
 		{
-			if(ODConfigs.ODClientConfig.shouldShowRedstoneParticles.get())
+			if(ODConfigs.REDSTONE_PARTICLES.get())
 			{
 				level.addParticle(DustParticleOptions.REDSTONE, pos.getX() + PIXEL_SIZE * 8, pos.getY() + PIXEL_SIZE * 2, pos.getZ() - PIXEL_SIZE, 0.0D, 0.0D, 0.0D);
 				level.addParticle(DustParticleOptions.REDSTONE, pos.getX() + PIXEL_SIZE * 8, pos.getY() + PIXEL_SIZE * 2, pos.getZ() + PIXEL_SIZE * 17, 0.0D, 0.0D, 0.0D);
@@ -173,7 +188,7 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 
 		if(state.getValue(IS_ACTIVE))
 		{
-			if(ODConfigs.ODClientConfig.shouldShowPortalParticles.get())
+			if(ODConfigs.PORTAL_PARTICLES.get())
 			{
 				for(int i = 0; i < 3; ++i)
 				{

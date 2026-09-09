@@ -22,10 +22,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 
-public class OnlineDetectorBlockEntityRenderer implements BlockEntityRenderer<OnlineDetectorBlockEntity>
+public class OnlineDetectorBlockEntityRenderer<T extends OnlineDetectorBlockEntity> implements BlockEntityRenderer<T>
 {
-	public static final ResourceLocation EYE_TEXTURE = new ResourceLocation(Reference.MODID, "textures/block/eye.png");
-	private static EyeModel eyeModel;
+	public static final ResourceLocation EYE_TEXTURE = ResourceLocation.fromNamespaceAndPath(Reference.MODID, "textures/block/eye.png");
+	private final EyeModel eyeModel;
+    private final java.util.Map<OnlineDetectorBlockEntity, Head> heads = new java.util.WeakHashMap<>();
+    private record Head(java.util.UUID id, String name, ItemStack stack) {}
 	
 	public OnlineDetectorBlockEntityRenderer(BlockEntityRendererProvider.Context context)
 	{
@@ -33,7 +35,7 @@ public class OnlineDetectorBlockEntityRenderer implements BlockEntityRenderer<On
 	}
 
 	@Override
-	public void render(OnlineDetectorBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
+	public void render(T blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
 	{
 		Direction facing = Direction.NORTH;
 		if(blockEntity.hasLevel())
@@ -85,61 +87,62 @@ public class OnlineDetectorBlockEntityRenderer implements BlockEntityRenderer<On
 	/**
 	 * Renders the Ender Eye on top of the Online Detector Block
 	 */
-	private static void renderEye(Level level, BlockState state, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
+	private void renderEye(Level level, BlockState state, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
 	{
 		poseStack.pushPose();
 		poseStack.scale(1.0F, -1.0F, -1.0F);
 		
 		if(state.getValue(OnlineDetectorBlock.IS_ACTIVE))
 		{
-			poseStack.mulPose(Axis.XP.rotationDegrees((float) Math.cos((Minecraft.getInstance().player.tickCount + partialTick) / 4) * 2));
-			poseStack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin((Minecraft.getInstance().player.tickCount + partialTick) / 4) * 2));
+			poseStack.mulPose(Axis.XP.rotationDegrees((float) Math.cos((level.getGameTime() + partialTick) / 4) * 2));
+			poseStack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin((level.getGameTime() + partialTick) / 4) * 2));
 		}
 		
 		poseStack.translate(0.0D, -1.0D, 0.0D);
 		poseStack.translate(0D, 0.0625 * -21, 0D);
 		VertexConsumer vertexconsumer = bufferSource.getBuffer(RenderType.entitySolid(EYE_TEXTURE));
-		eyeModel.renderToBuffer(poseStack, vertexconsumer, packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+		eyeModel.renderToBuffer(poseStack, vertexconsumer, packedLight, packedOverlay, -1);
 		poseStack.popPose();
 	}
 	
 	/**
 	 * Renders the Ender Eye on top of the Online Detector Block
 	 */
-	private static void renderEye(Level level, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
+	private void renderEye(Level level, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
 	{
 		poseStack.pushPose();
 		poseStack.scale(1.0F, -1.0F, -1.0F);
 		poseStack.translate(0.0D, -1.0D, 0.0D);
 		poseStack.translate(0D, 0.0625 * -21, 0D);
 		VertexConsumer vertexconsumer = bufferSource.getBuffer(RenderType.entitySolid(EYE_TEXTURE));
-		eyeModel.renderToBuffer(poseStack, vertexconsumer, packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+		eyeModel.renderToBuffer(poseStack, vertexconsumer, packedLight, packedOverlay, -1);
 		poseStack.popPose();
 	}
 	
 	/**
 	 * Renders the Player face
 	 */
-	private static void renderPlayerFace(OnlineDetectorBlockEntity blockEntity, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
-	{
-		if(blockEntity.getOwnerUUID() != null && blockEntity.getOwnerName() != null)
-		{
-			if(blockEntity.getOwnerHead().getItem() == Items.AIR)
-				// This was replaced with a simplified version of the code because the normal Online Detector never changes the player head unless replaced
-//				NetworkUtil.setPlayerHeadMessage(tileEntityIn.getPos(), getCustomHead(tileEntityIn.getOwnerName()));
-				blockEntity.setOwnerHead(getCustomHead(blockEntity.getOwnerName()));
-		}
-		int i = (int)blockEntity.getBlockPos().asLong();
-		// We make sure the stack has been initialized before attempting to render it
-		if(blockEntity.getOwnerHead().getItem() != Items.AIR)
-			Minecraft.getInstance().getItemRenderer().renderStatic(blockEntity.getOwnerHead(), ItemDisplayContext.FIXED, packedLight, packedOverlay, poseStack, bufferSource, blockEntity.getLevel(), i);
-	}
-	
-	private static ItemStack getCustomHead(String playerName)
-	{	    	
-    	ItemStack customHead = new ItemStack(Items.PLAYER_HEAD);
-    	customHead.setTag(new CompoundTag());
-    	customHead.getTag().putString("SkullOwner", playerName);     	 
-    	return customHead;    	    
+    private void renderPlayerFace(OnlineDetectorBlockEntity detector, PoseStack poseStack,
+            MultiBufferSource buffers, int light, int overlay) {
+        var id = detector.getOwnerUUID();
+        var name = detector.getOwnerName();
+        if (id == null || name == null) {
+            heads.remove(detector);
+            return;
+        }
+        Head head = heads.get(detector);
+        if (head == null || !id.equals(head.id()) || !name.equals(head.name())) {
+            var profile = new com.mojang.authlib.GameProfile(id, name);
+            var connection = Minecraft.getInstance().getConnection();
+            var info = connection == null ? null : connection.getPlayerInfo(id);
+            if (info != null) profile = info.getProfile();
+            ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+            stack.set(net.minecraft.core.component.DataComponents.PROFILE,
+                    new net.minecraft.world.item.component.ResolvableProfile(profile));
+            head = new Head(id, name, stack);
+            heads.put(detector, head);
+        }
+        Minecraft.getInstance().getItemRenderer().renderStatic(head.stack(), ItemDisplayContext.FIXED,
+                light, overlay, poseStack, buffers, detector.getLevel(), (int) detector.getBlockPos().asLong());
     }
 }

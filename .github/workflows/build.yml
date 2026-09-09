@@ -1,0 +1,40 @@
+name: Build and GameTests
+on:
+  push:
+    branches: [neoforge-1.21.1]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      - name: Build mod and sources
+        run: ./gradlew --no-daemon build --stacktrace
+      - name: Run dedicated GameTest server
+        run: ./gradlew --no-daemon runGameTestServer
+      - name: Upload mod and source JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnlineDetector-NeoForge-1.21.1
+          path: build/libs/*.jar
+          if-no-files-found: error
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          path: |
+            build/reports/
+            runs/**/logs/
+            run/**/logs/

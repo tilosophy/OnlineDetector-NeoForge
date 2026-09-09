@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 // Made with Blockbench 4.1.5
 public class EyeModel extends Model
 {
-	public static final ModelLayerLocation EYE_LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation(Reference.MODID, "eye_layer"), "main");
+	public static final ModelLayerLocation EYE_LAYER_LOCATION = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(Reference.MODID, "eye_layer"), "main");
 	private final ModelPart eye;
 
 	public EyeModel(ModelPart root)
@@ -34,7 +34,7 @@ public class EyeModel extends Model
 	}
 
 	@Override
-	public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha)
+	public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color)
 	{
 		eye.render(poseStack, buffer, packedLight, packedOverlay);
 	}
