@@ -12,13 +12,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - name: Build mod and sources
-        run: ./gradlew --no-daemon build
+        run: ./gradlew --no-daemon build --stacktrace
       - name: Run dedicated GameTest server
         run: ./gradlew --no-daemon runGameTestServer
       - name: Upload mod and source JARs

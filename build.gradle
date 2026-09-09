@@ -27,9 +27,9 @@ neoForge {
     }
 }
 var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
-    var properties = [mod_version: mod_version, neo_version: neo_version]
-    inputs.properties properties
-    expand properties
+    var replaceProperties = [mod_version: mod_version, neo_version: neo_version]
+    inputs.properties replaceProperties
+    expand replaceProperties
     from 'src/main/templates'
     into 'build/generated/sources/modMetadata'
 }
