@@ -1,13 +1,13 @@
 {
     "type": "minecraft:crafting_shaped",
     "pattern": [
-        "CEC",
+        "iEi",
         "SOS",
         "RTR"
     ],
     "key": {
-        "C": {
-            "item": "minecraft:cobblestone"
+        "i": {
+            "item": "minecraft:iron_ingot"
         },
         "E": {
             "item": "minecraft:ender_eye"
