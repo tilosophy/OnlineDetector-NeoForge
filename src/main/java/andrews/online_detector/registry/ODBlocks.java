@@ -9,8 +9,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class ODBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(Reference.MODID);
     public static final DeferredBlock<OnlineDetectorBlock> ONLINE_DETECTOR =
-            BLOCKS.register("online_detector", () -> new OnlineDetectorBlock(OnlineDetectorBlock.properties()));
+            BLOCKS.register("online_detector", () -> new OnlineDetectorBlock(OnlineDetectorBlock.createProperties()));
     public static final DeferredBlock<AdvancedOnlineDetectorBlock> ADVANCED_ONLINE_DETECTOR =
-            BLOCKS.register("advanced_online_detector", () -> new AdvancedOnlineDetectorBlock(OnlineDetectorBlock.properties()));
+            BLOCKS.register("advanced_online_detector", () -> new AdvancedOnlineDetectorBlock(OnlineDetectorBlock.createProperties()));
     private ODBlocks() {}
 }

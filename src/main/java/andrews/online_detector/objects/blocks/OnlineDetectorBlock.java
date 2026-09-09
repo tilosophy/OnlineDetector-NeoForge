@@ -71,7 +71,7 @@ public class OnlineDetectorBlock extends BaseEntityBlock
 	/**
 	 * @return - The properties for this Block
 	 */
-	public static Properties properties()
+	public static Properties createProperties()
 	{
 		Properties properties = Block.Properties.of();
 		properties.mapColor(MapColor.STONE);
